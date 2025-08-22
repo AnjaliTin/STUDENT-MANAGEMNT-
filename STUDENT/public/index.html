@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f7fa;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      max-width: 400px;
+      margin: 20px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    table {
+      width: 90%;
+      margin: 20px auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #007bff;
+      color: white;
+    }
+    .btn {
+      padding: 6px 12px;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+    }
+    .delete-btn {
+      background: red;
+      color: white;
+    }
+    .delete-btn:hover {
+      background: darkred;
+    }
+    .edit-btn {
+      background: orange;
+      color: white;
+    }
+    .edit-btn:hover {
+      background: darkorange;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎓 Student Management System</h1>
+
+  <form id="studentForm">
+    <input type="text" id="name" placeholder="Enter Name" required />
+    <input type="text" id="rollNo" placeholder="Enter Roll Number" required />
+    <input type="text" id="department" placeholder="Enter Department" required />
+    <button type="submit">Add Student</button>
+  </form>
+
+  <table id="studentTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Roll No</th>
+        <th>Department</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById("studentForm");
+    const tableBody = document.querySelector("#studentTable tbody");
+
+    let editMode = false;
+    let editRollNo = null;
+
+    // Load students
+    async function loadStudents() {
+      const res = await fetch("/students");
+      const students = await res.json();
+      tableBody.innerHTML = "";
+      students.forEach((s, i) => {
+        tableBody.innerHTML += `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${s.name}</td>
+            <td>${s.rollNo}</td>
+            <td>${s.department}</td>
+            <td>
+              <button class="btn edit-btn" onclick="editStudent('${s.rollNo}', '${s.name}', '${s.department}')">✏️ Edit</button>
+              <button class="btn delete-btn" onclick="deleteStudent('${s.rollNo}')">❌ Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Add or Update student
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const rollNo = document.getElementById("rollNo").value;
+      const department = document.getElementById("department").value;
+
+      if (editMode) {
+        // Update student
+        await fetch(`/students/${editRollNo}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, department }),
+        });
+        editMode = false;
+        editRollNo = null;
+        form.querySelector("button").textContent = "Add Student";
+      } else {
+        // Add student
+        await fetch("/students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, rollNo, department }),
+        });
+      }
+
+      form.reset();
+      loadStudents();
+    });
+
+    // Delete student
+    async function deleteStudent(rollNo) {
+      await fetch(`/students/${rollNo}`, { method: "DELETE" });
+      loadStudents();
+    }
+
+    // Edit student
+    function editStudent(rollNo, name, department) {
+      document.getElementById("name").value = name;
+      document.getElementById("rollNo").value = rollNo;
+      document.getElementById("department").value = department;
+      document.getElementById("rollNo").disabled = true; // prevent changing roll no
+      editMode = true;
+      editRollNo = rollNo;
+      form.querySelector("button").textContent = "Update Student";
+    }
+
+    loadStudents();
+  </script>
+</body>
+</html>
